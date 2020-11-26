@@ -288,6 +288,8 @@ class mod_dataview_external extends external_api {
 
         }
 
+        // ToDo: Separar la consulta por palabra clave de los filtros porque si se hacen al tiempo sobre campos
+        // difetentes se anulan mutuamente y no se obtienen resultados.
         $query = !empty($query) ? $query . ' AND ' : '';
         if (count($queryfilters) > 0) {
             $query .= '(' . implode(' AND ', $queryfilters) . ')';
