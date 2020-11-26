@@ -1,0 +1,77 @@
+.dataview-board {
+    display: flex;
+    flex-wrap: nowrap;
+    margin-top: 30px;
+}
+
+.dataview-board .records {
+    width: 99%;
+    padding: 0 0 10px 10px;
+}
+
+.dataview-board .records.loading {
+    background-color: #7c8f8c;
+    min-height: 100px;
+}
+
+.dataview-board .filter-box {
+    padding: 0 10px 10px 0;
+}
+
+.dataview-board .one-filter .filter-body {
+    display: none;
+}
+
+.dataview-board .one-filter.opened .filter-body {
+    display: block;
+}
+
+.dataview-board .one-filter .filter-head {
+    cursor: pointer;
+    position: relative;
+    padding-left: 15px;
+    font-size: 16px;
+}
+
+.dataview-board .one-filter .filter-head:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid #7c8f8c;
+}
+
+
+.dataview-board .one-filter.opened .filter-head:before {
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #7c8f8c;
+}
+
+.dataview-board .search-box {
+    padding: 0 10px 10px 0;
+}
+
+.dataview-board .filter-body .option {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #ccc;
+}
+
+.dataview-board .filter-body .option:hover {
+    background: var(--color-bg-third);
+    color: var(--color-cont-third);
+}
+
+.dataview-board .filter-body .option label {
+    width: 100%;
+    padding: 5px 0;
+}
+
+.dataview-board .filter-body .option label:hover {
+    cursor: pointer;
+}
