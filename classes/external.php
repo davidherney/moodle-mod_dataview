@@ -246,10 +246,11 @@ class mod_dataview_external extends external_api {
             $queryfilters[] = '(' . implode(' OR ', $specificfilter) . ')';
         }
 
+        $requiredfilters = null;
         if (!empty($dataview->customfilters)) {
             $customfilters = explode("\n", $dataview->customfilters);
 
-            $specificfilter = array();
+            $requiredfilters = array();
             foreach ($customfilters as $line) {
                 $parts = explode('|', $line);
 
@@ -276,23 +277,31 @@ class mod_dataview_external extends external_api {
                     continue;
                 }
 
-                $specificfilter[] = "(d.fieldid = :f" . $i . " AND d.content LIKE :q" . $i . ")";
+                $requiredfilters[] = "(id.fieldid = :f" . $i . " AND id.content LIKE :q" . $i . ")";
                 $params["f" . $i] = $datafield->id;
                 $params["q" . $i] = $fieldvalue;
                 $i++;
 
             }
 
-            $queryfilters[] = '(' . implode(' AND ', $specificfilter) . ')';
+            $requiredfilters = implode(' AND ', $requiredfilters);
 
         }
 
+        $query = !empty($query) ? $query . ' AND ' : '';
         if (count($queryfilters) > 0) {
-            $query = !empty($query) ? $query . ' AND ' : '';
             $query .= '(' . implode(' AND ', $queryfilters) . ')';
             $query = 'r.approved = 1 AND ' . $query;
         } else {
-            $query = 'r.approved = 1';
+            $query .= 'r.approved = 1';
+        }
+
+        if ($requiredfilters) {
+            $query .= " AND d.recordid IN (
+                                SELECT recordid FROM {data_content} AS id
+                                    INNER JOIN {data_records} AS ir ON ir.id = id.recordid AND ir.dataid = $dataid
+                                    WHERE $requiredfilters
+                                    )";
         }
 
         if (!empty($query)) {
@@ -300,9 +309,10 @@ class mod_dataview_external extends external_api {
         }
 
         $sql = "SELECT DISTINCT d.recordid
-                    FROM {data_content} AS d
-                    INNER JOIN {data_records} AS r ON r.id = d.recordid AND r.dataid = $dataid"
-                    . $query;
+                FROM {data_content} AS d
+                INNER JOIN {data_records} AS r ON r.id = d.recordid AND r.dataid = $dataid"
+                . $query;
+
         $records = $DB->get_records_sql($sql, $params, $start, $limit);
 
         $list = array();
@@ -329,7 +339,7 @@ class mod_dataview_external extends external_api {
                     $displayfield = new $displayfield($field, $data, $cm);
 
                     $fieldname = $field->name;
-                    $one->{$fieldname} = $displayfield->display_browse_field($record->recordid, 'listtempalte');
+                    $one->{$fieldname} = $displayfield->display_browse_field($record->recordid, 'listtemplate');
                 }
 
                 $list[] = json_encode($one);
