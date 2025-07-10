@@ -4,14 +4,34 @@
     margin-top: 30px;
 }
 
+.dataview-board h3 {
+    font-size: 20px;
+}
+
+.dataview-board h4 {
+    font-size: 16px;
+}
+
+.dataview-board .filter-box .card {
+    margin-bottom: 10px;
+}
+
 .dataview-board .records {
     width: 99%;
     padding: 0 0 10px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+}
+
+.dataview-board .records > .card {
+    margin: 0 10px 10px 0;
 }
 
 .dataview-board .records.loading {
-    background-color: #7c8f8c;
+    background: #000 url([[pix:mod_dataview|loading]]) no-repeat center center;
     min-height: 100px;
+    filter: opacity(0.1);
 }
 
 .dataview-board .filter-box {
@@ -20,6 +40,7 @@
 
 .dataview-board .one-filter .filter-body {
     display: none;
+    padding-bottom: 20px;
 }
 
 .dataview-board .one-filter.opened .filter-body {
@@ -30,7 +51,6 @@
     cursor: pointer;
     position: relative;
     padding-left: 15px;
-    font-size: 16px;
 }
 
 .dataview-board .one-filter .filter-head:before {
@@ -52,8 +72,22 @@
     border-top: 5px solid #7c8f8c;
 }
 
-.dataview-board .search-box {
-    padding: 0 10px 10px 0;
+.dataview-board .search-box > div {
+    display: flex;
+}
+
+.dataview-board .search-box > div input#fulltext-query {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.dataview-board .search-box > div button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.dataview-board .search-box > div i {
+    margin-right: 0;
 }
 
 .dataview-board .filter-body .option {

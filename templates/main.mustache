@@ -15,7 +15,7 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template mod_dataview/catalog
+    @template mod_dataview/main
 
     This template renders the template content area for a resource.
 
@@ -25,22 +25,33 @@
 
 <div class="dataview-board">
     <div class="filter-box">
-        <div class="search-box">
-            <strong><label for="fulltext-query">{{#str}}fulltext, mod_dataview{{/str}}</label></strong>
-            <input id="fulltext-query" class="form-control" type="text" name="q" value="" />
-        </div>
-        {{#fields}}
-            <div class="one-filter type-{{type}}">
-                <h3 class="filter-head">{{description}}</h3>
-                <div class="filter-body">
-                    {{{control}}}
+        <div class="card">
+            <h3 class="card-header">{{#str}}singlesearch, mod_dataview{{/str}}</h3>
+            <div class="card-body search-box">
+                <h4><label for="fulltext-query">{{#str}}fulltext, mod_dataview{{/str}}</label></h4>
+                <div>
+                    <input id="fulltext-query" class="form-control" type="text" name="q" value="" />
+                    <button class="search-btn btn btn-primary">{{#pix}}i/search, core{{/pix}}</button>
                 </div>
             </div>
-        {{/fields}}
-        <button class="filter-btn">{{#str}}filter, mod_dataview{{/str}} {{#pix}}i/search, core{{/pix}}</button>
+        </div>
+
+        <div class="card">
+            <h3 class="card-header">{{#str}}advancesearch, mod_dataview{{/str}}</h3>
+            <div class="card-body">
+            {{#fields}}
+                <div class="one-filter type-{{type}}">
+                    <h4 class="filter-head">{{description}}</h4>
+                    <div class="filter-body">
+                        {{{control}}}
+                    </div>
+                </div>
+            {{/fields}}
+            </div>
+                <button class="filter-btn btn btn-primary">{{#str}}filter, mod_dataview{{/str}} {{#pix}}i/search, core{{/pix}}</button>
+        </div>
     </div>
-    <div class="records">
-    </div>
+    <div class="records"></div>
 </div>
 
 <template id="dataview-tpl-itemlist">

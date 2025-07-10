@@ -26,7 +26,8 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-require_once("$CFG->libdir/externallib.php");
+require_once($CFG->libdir . '/externallib.php');
+require_once($CFG->dirroot . '/mod/data/locallib.php');
 
 /**
  * Data view external functions
@@ -136,10 +137,6 @@ class mod_dataview_external extends external_api {
         );
     }
 
-
-
-
-
     /**
      * To validade input parameters
      * @return external_function_parameters
@@ -163,21 +160,65 @@ class mod_dataview_external extends external_api {
         );
     }
 
-    public static function query($id, $q, $filters, $start, $limit) {
+    public static function query(int $id, string $q, array $filters, int $start, int $limit) {
         global $DB, $USER, $CFG;
 
         $dataview = $DB->get_record('dataview', array('id' => $id), '*', MUST_EXIST);
 
         $dataid = $dataview->dataid;
-
-        $query = '';
-        $querylist = array();
-        $params = array();
+        $data = $DB->get_record('data', array('id' => $dataview->dataid), '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('data', $dataview->dataid, 0, false, MUST_EXIST);
+        $context = context_module::instance($cm->id);
+        $sort = '';
+        $order = '';
+        $page = $start;
+        $perpage = $limit;
+        $defaults = [];
+        $requiredfilters = [];
         $i = 0;
+
+        if (!empty($dataview->customfilters)) {
+            $customfilters = explode("\n", $dataview->customfilters);
+
+            foreach ($customfilters as $line) {
+                $parts = explode('|', $line);
+
+                if (count($parts) != 2) {
+                    continue;
+                }
+
+                $fieldname = trim($parts[0]);
+                $fieldvalue = trim($parts[1]);
+
+                // Values starting with # are a current user field filter.
+                if (substr($fieldvalue, 0, 1) == '#') {
+                    $f = ltrim($fieldvalue, '#');
+
+                    if (!empty($f) && property_exists($USER, $f)) {
+                        $fieldvalue = $USER->$f;
+                    }
+                }
+
+                $datafield = $DB->get_record('data_fields', ['dataid' => $dataid, 'name' => $fieldname]);
+
+                // The field not exist for the current data module instance.
+                if (!$datafield) {
+                    continue;
+                }
+
+                $defaults['f_' . $datafield->id] = $fieldvalue;
+
+                $requiredfilters[] = "(id.fieldid = :f" . $i . " AND id.content LIKE :q" . $i . ")";
+                $params["f" . $i] = $datafield->id;
+                $params["q" . $i] = $fieldvalue;
+                $i++;
+            }
+        }
 
         $q = trim($q);
         if (!empty($q)) {
 
+            $querylist = [];
             $pattern = '/"(.*?)"/i';
             if (preg_match_all($pattern, $q, $result, PREG_PATTERN_ORDER) && count($result) > 1) {
                 // The 0 position is the result with quotes.
@@ -191,6 +232,7 @@ class mod_dataview_external extends external_api {
 
             $words = explode(' ', $q);
 
+            $search = '';
             foreach ($words as $word) {
 
                 $word = trim($word);
@@ -212,120 +254,66 @@ class mod_dataview_external extends external_api {
                 $i++;
             }
 
+            $query = '';
             if (count($querylist) > 0) {
                 $query  = '(' . implode(' OR ', $querylist) . ')';
-            }
-        }
-
-        $filterkeys = array();
-        foreach ($filters as $m) {
-            $key = trim($m['key']);
-            if (!is_numeric($key)) {
-                continue;
-            }
-            $key = intval($key);
-
-            if (!key_exists($key, $filterkeys)) {
-                $filterkeys[$key] = array();
-            }
-            $filterkeys[$key][] = $m['value'];
-        }
-
-        $queryfilters = array();
-
-        foreach ($filterkeys as $k => $m) {
-
-            $specificfilter = array();
-            foreach ($m as $value) {
-                $specificfilter[] = "(d.fieldid = :f" . $i . " AND d.content LIKE :q" . $i . ")";
-                $params["f" . $i] = $k;
-                $params["q" . $i] = '%' . $value . '%';
-                $i++;
-            }
-
-            $queryfilters[] = '(' . implode(' OR ', $specificfilter) . ')';
-        }
-
-        $requiredfilters = null;
-        if (!empty($dataview->customfilters)) {
-            $customfilters = explode("\n", $dataview->customfilters);
-
-            $requiredfilters = array();
-            foreach ($customfilters as $line) {
-                $parts = explode('|', $line);
-
-                if (count($parts) != 2) {
-                    continue;
-                }
-
-                $fieldname = trim($parts[0]);
-                $fieldvalue = trim($parts[1]);
-
-                // Values starting with # are a current user field filter.
-                if (substr($fieldvalue, 0, 1) == '#') {
-                    $f = ltrim($fieldvalue, '#');
-
-                    if (!empty($f) && property_exists($USER, $f)) {
-                        $fieldvalue = $USER->$f;
-                    }
-                }
-
-                $datafield = $DB->get_record('data_fields', array('dataid' => $dataid, 'name' => $fieldname));
-
-                // The field not exist for the current data module instance.
-                if (!$datafield) {
-                    continue;
-                }
-
-                $requiredfilters[] = "(id.fieldid = :f" . $i . " AND id.content LIKE :q" . $i . ")";
-                $params["f" . $i] = $datafield->id;
-                $params["q" . $i] = $fieldvalue;
-                $i++;
-
+            } else {
+                $query = '1';
             }
 
             $requiredfilters = implode(' AND ', $requiredfilters);
 
-        }
+            if ($requiredfilters) {
+                $query .= " AND d.recordid IN (
+                                    SELECT recordid FROM {data_content} AS id
+                                        INNER JOIN {data_records} AS ir ON ir.id = id.recordid AND ir.dataid = $dataid
+                                        WHERE $requiredfilters
+                                        )";
+            }
 
-        // ToDo: Separar la consulta por palabra clave de los filtros porque si se hacen al tiempo sobre campos
-        // difetentes se anulan mutuamente y no se obtienen resultados.
-        $query = !empty($query) ? $query . ' AND ' : '';
-        if (count($queryfilters) > 0) {
-            $query .= '(' . implode(' AND ', $queryfilters) . ')';
-            $query = 'r.approved = 1 AND ' . $query;
-        } else {
-            $query .= 'r.approved = 1';
-        }
+            if (!empty($query)) {
+                $query = ' WHERE ' . $query;
+            }
 
-        if ($requiredfilters) {
-            $query .= " AND d.recordid IN (
-                                SELECT recordid FROM {data_content} AS id
-                                    INNER JOIN {data_records} AS ir ON ir.id = id.recordid AND ir.dataid = $dataid
-                                    WHERE $requiredfilters
-                                    )";
-        }
-
-        if (!empty($query)) {
-            $query = ' WHERE ' . $query;
-        }
-
-        $sql = "SELECT DISTINCT d.recordid
+            $sql = "SELECT DISTINCT d.recordid AS id
                 FROM {data_content} AS d
-                INNER JOIN {data_records} AS r ON r.id = d.recordid AND r.dataid = $dataid"
-                . $query;
+                INNER JOIN {data_records} AS r ON r.id = d.recordid AND r.dataid = $dataid" . $query;
 
-        $records = $DB->get_records_sql($sql, $params, $start, $limit);
+            $records = $DB->get_records_sql($sql, $params, $start, $limit);
 
-        $list = array();
+        } else {
+
+            $paging = false;
+            $mode = '';
+            $currentgroup = groups_get_activity_group($cm, true);
+            $advanced = true;
+            $record = null;
+
+            foreach ($filters as $m) {
+                $key = trim($m['key']);
+                if (!is_numeric($key)) {
+                    continue;
+                }
+                $key = intval($key);
+
+                $defaults['f_' . $key] = $m['value'];
+            }
+            list($searcharray, $search) = data_build_search_array($data, $paging, [], $defaults);
+
+            // Search for entries.
+            list($records, $maxcount, $totalcount, $page, $nowperpage, $sort, $mode) =
+                data_search_entries($data, $cm, $context, $mode, $currentgroup, $search, $sort, $order, $page, $perpage,
+                                    $advanced, $searcharray, $record);
+        }
+
+
+        $list = [];
         if (count($records) > 0) {
 
             require_once($CFG->dirroot . '/mod/data/lib.php');
 
-            $fields = $DB->get_records('data_fields', array('dataid' => $dataview->dataid));
-            $data = $DB->get_record('data', array('id' => $dataview->dataid), '*', MUST_EXIST);
-            $cm = get_coursemodule_from_instance('data', $dataview->dataid, 0, false, MUST_EXIST);
-            $context = context_module::instance($cm->id);
+            $fields = $DB->get_records('data_fields', ['dataid' => $dataview->dataid]);
+
             require_capability('mod/dataview:view', $context);
 
             global $PAGE;
@@ -341,28 +329,11 @@ class mod_dataview_external extends external_api {
                     $displayfield = new $displayfield($field, $data, $cm);
 
                     $fieldname = $field->name;
-                    $one->{$fieldname} = $displayfield->display_browse_field($record->recordid, 'listtemplate');
+                    $one->{$fieldname} = $displayfield->display_browse_field($record->id, 'listtemplate');
                 }
 
                 $list[] = json_encode($one);
 
-//                $dr = $DB->get_records('data_content', array('recordid' => $record->recordid));
-                // foreach ($dr as $singlerecord) {
-
-                //     if (!isset($fields[$singlerecord->fieldid])) {
-                //         continue;
-                //     }
-
-                //     $field = $fields[$singlerecord->fieldid];
-
-                //     $displayfield = 'data_field_' . $field->type;
-                //     $displayfield = new $displayfield($field, $data, $cm);
-
-                //     $one->{$field} = $displayfield->display_browse_field($record->recordid);
-
-                // }
-
-                // $list[] = json_encode($one);
             }
 
         }

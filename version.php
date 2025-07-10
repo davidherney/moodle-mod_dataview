@@ -17,15 +17,14 @@
 /**
  * Data view module version info
  *
- * @package mod_dataview
+ * @package   mod_dataview
  * @copyright 2020 David Herney @ BambuCo
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2020101102;       // The current module version (Date: YYYYMMDDXX)
+$plugin->version   = 2025071000;       // The current module version (Date: YYYYMMDDXX)
 $plugin->requires  = 2019051100;    // Requires this Moodle version
 $plugin->component = 'mod_dataview'; // Full name of the plugin (used for diagnostics)
-$plugin->cron      = 0;
-$plugin->dependencies = array('mod_data' => 2019052001);
+$plugin->dependencies = ['mod_data' => 2019052001];

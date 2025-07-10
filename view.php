@@ -54,9 +54,6 @@ $PAGE->set_heading($dataview->name);
 $PAGE->set_title($dataview->name);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($dataview->name, 2);
-
-echo format_text($dataview->intro, $dataview->introformat);
 
 $renderable = new \mod_dataview\output\main($dataview);
 $renderer = $PAGE->get_renderer('mod_dataview');

@@ -48,12 +48,4 @@ $functions = array(
     ),
 );
 
-$services = array(
-    'Dataview services' => array(
-            'functions' => array ('mod_dataview_external'),
-            'restrictedusers' => 0, // if 1, the administrator must manually select which user can use this service.
-            // (Administration > Plugins > Web services > Manage services > Authorised users)
-            'enabled' => 0, // if 0, then token linked to this service won't work
-            'shortname' => 'mod_dataview_ws'
-    ),
-);
+$services = [];
