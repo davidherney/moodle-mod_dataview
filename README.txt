@@ -16,7 +16,8 @@ GIT: https://github.com/davidherney/moodle-mod_dataview.git
 IN VERSION
 =============
 2025071000:
-Improved searches
+- Improved searches
+- Sort by and Records per page features
 
 2020101102:
-First version
+- First version

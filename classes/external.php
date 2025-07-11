@@ -143,32 +143,50 @@ class mod_dataview_external extends external_api {
      */
     public static function query_parameters() {
         return new external_function_parameters(
-            array(
+            [
                 'id' => new external_value(PARAM_INT, 'Dataview id'),
                 'q' => new external_value(PARAM_TEXT, 'Query', VALUE_DEFAULT, '*'),
                 'filters' => new external_multiple_structure(
                     new external_single_structure(
-                        array(
+                        [
                             'key'   => new external_value(PARAM_TEXT, 'Filter key'),
-                            'value' => new external_value(PARAM_TEXT, 'Course id number')),
+                            'value' => new external_value(PARAM_TEXT, 'Course id number'),
+                        ],
                         'A single filter key/value pair'),
-                    'Filters query list', VALUE_DEFAULT, array()
+                    'Filters query list', VALUE_DEFAULT, []
                 ),
                 'start' => new external_value(PARAM_INT, 'Records start', VALUE_DEFAULT, 0),
-                'limit' => new external_value(PARAM_INT, 'Records limit', VALUE_DEFAULT, 20)
-            )
+                'limit' => new external_value(PARAM_INT, 'Records limit', VALUE_DEFAULT, 20),
+                'sort' => new external_value(PARAM_INT, 'Sort field', VALUE_DEFAULT, 0),
+                'dir' => new external_value(PARAM_ALPHA, 'Sort direction', VALUE_DEFAULT, 'DESC', 'ASC or DESC'),
+            ]
         );
     }
 
-    public static function query(int $id, string $q, array $filters, int $start, int $limit) {
+    /**
+     * Query the dataview for records.
+     *
+     * @param int $id Dataview id
+     * @param string $q Query string
+     * @param array $filters Filters to apply
+     * @param int $start Start index for pagination
+     * @param int $limit Number of records to return
+     * @param int $sortid Sort field index
+     * @param string $sortdir Sort direction, either 'ASC' or 'DESC'
+     * @return array List of records as JSON strings
+     */
+    public static function query(int $id, string $q, array $filters, int $start, int $limit,
+                                int $sortid = 0, string $sortdir = 'DESC') {
         global $DB, $USER, $CFG;
 
-        $dataview = $DB->get_record('dataview', array('id' => $id), '*', MUST_EXIST);
+        $dataview = $DB->get_record('dataview', ['id' => $id], '*', MUST_EXIST);
 
         $dataid = $dataview->dataid;
         $data = $DB->get_record('data', array('id' => $dataview->dataid), '*', MUST_EXIST);
         $cm = get_coursemodule_from_instance('data', $dataview->dataid, 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
+        $fields = $DB->get_records('data_fields', ['dataid' => $dataview->dataid]);
+
         $sort = '';
         $order = '';
         $page = $start;
@@ -176,6 +194,12 @@ class mod_dataview_external extends external_api {
         $defaults = [];
         $requiredfilters = [];
         $i = 0;
+        $sorted = false;
+
+        if ($sortid > 0 && isset($fields[$sortid])) {
+            $sort = $sortid . ''; // Convert to string for function parameter definition.
+            $order = $sortdir && strtoupper($sortdir) == 'ASC' ? 'ASC' : 'DESC';
+        }
 
         if (!empty($dataview->customfilters)) {
             $customfilters = explode("\n", $dataview->customfilters);
@@ -304,6 +328,8 @@ class mod_dataview_external extends external_api {
             list($records, $maxcount, $totalcount, $page, $nowperpage, $sort, $mode) =
                 data_search_entries($data, $cm, $context, $mode, $currentgroup, $search, $sort, $order, $page, $perpage,
                                     $advanced, $searcharray, $record);
+
+            $sorted = true;
         }
 
 
@@ -312,13 +338,12 @@ class mod_dataview_external extends external_api {
 
             require_once($CFG->dirroot . '/mod/data/lib.php');
 
-            $fields = $DB->get_records('data_fields', ['dataid' => $dataview->dataid]);
-
             require_capability('mod/dataview:view', $context);
 
             global $PAGE;
             $PAGE->set_context($context);
 
+            $listpartial = [];
             foreach ($records as $record) {
 
                 $one = new stdClass();
@@ -332,8 +357,25 @@ class mod_dataview_external extends external_api {
                     $one->{$fieldname} = $displayfield->display_browse_field($record->id, 'listtemplate');
                 }
 
-                $list[] = json_encode($one);
+                $listpartial[] = $one;
 
+            }
+
+            if (!$sorted) {
+                // Sort the list by the sort field.
+                $sortfield = $fields[$sortid]->name ?? 'id';
+                usort($listpartial, function ($a, $b) use ($sortfield) {
+                    return strcmp($a->{$sortfield}, $b->{$sortfield});
+                });
+
+                if ($sortdir == 'DESC') {
+                    $listpartial = array_reverse($listpartial);
+                }
+            }
+
+            foreach ($listpartial as $one) {
+                // We need to encode the record before order it.
+                $list[] = json_encode($one);
             }
 
         }
@@ -348,7 +390,7 @@ class mod_dataview_external extends external_api {
     public static function query_returns() {
 
         return new external_multiple_structure(
-            new external_value(PARAM_RAW, 'List with records as JSON'), 'Records list', VALUE_DEFAULT, array()
+            new external_value(PARAM_RAW, 'List with records as JSON'), 'Records list', VALUE_DEFAULT, []
         );
     }
 

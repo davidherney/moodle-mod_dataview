@@ -96,7 +96,14 @@ function ($, ModalFactory, ModalEvents, Templates, Notification, Ajax) {
             $recordsboard.empty().addClass('loading');
 
             var q = $('#fulltext-query').val();
-            get_records(dataviewid, q, []);
+            var sortfield = 0;
+            var sortdir = 'DESC';
+            if ($('#sortby').length > 0) {
+                sortfield = $('#sortby').val();
+                sortdir = $('#sortdirection').val();
+            }
+            var limit = parseInt($('#recordsperpage').val());
+            get_records(dataviewid, q, [], sortfield, sortdir, limit);
 
         });
 
@@ -163,10 +170,16 @@ function ($, ModalFactory, ModalEvents, Templates, Notification, Ajax) {
                 element.key = element.key.replace('[]', '');
             });
 
-            get_records(dataviewid, '', filters);
+            var sortfield = 0;
+            var sortdir = 'DESC';
+            if ($('#sortby').length > 0) {
+                sortfield = $('#sortby').val();
+                sortdir = $('#sortdirection').val();
+            }
+            var limit = parseInt($('#recordsperpage').val());
+            get_records(dataviewid, '', filters, sortfield, sortdir, limit);
 
         });
-
 
     };
 
@@ -176,15 +189,20 @@ function ($, ModalFactory, ModalEvents, Templates, Notification, Ajax) {
      * @param {int} dataviewid
      * @param {string} q
      * @param {object} filters
+     * @param {string} sort
+     * @param {string} dir ASC or DESC
+     * @param {int} limit
      */
-    var get_records = function (dataviewid, q, filters) {
+    var get_records = function (dataviewid, q, filters, sort = 0, dir = 'DESC', limit = 0) {
 
         var $listtemplate = $('#dataview-tpl-itemlist');
         var $singletemplate = $('#dataview-tpl-itemsingle');
 
+        limit = limit || 0;
+
         Ajax.call([{
             methodname: 'mod_dataview_query',
-            args: { 'id': dataviewid, 'q': q, 'filters': filters },
+            args: { 'id': dataviewid, 'q': q, 'filters': filters, 'sort': sort, 'dir': dir, 'limit': limit },
             done: function (data) {
                 $('.dataview-board .records').removeClass('loading');
 

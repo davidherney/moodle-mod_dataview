@@ -48,7 +48,39 @@
                 </div>
             {{/fields}}
             </div>
-                <button class="filter-btn btn btn-primary">{{#str}}filter, mod_dataview{{/str}} {{#pix}}i/search, core{{/pix}}</button>
+            <button class="filter-btn btn btn-primary">{{#str}}filter, mod_dataview{{/str}} {{#pix}}i/search, core{{/pix}}</button>
+        </div>
+        {{#cansort}}
+        <div class="card">
+            <h3 class="card-header">{{#str}}sortby, mod_dataview{{/str}}</h3>
+            <div class="card-body">
+                <div class="sortby">
+                    <select id="sortby" class="form-control">
+                        {{#fields}}
+                            <option value="{{id}}">{{description}}</option>
+                        {{/fields}}
+                    </select>
+                    <select id="sortdirection" class="form-control">
+                        <option value="asc">{{#str}}asc{{/str}}</option>
+                        <option value="desc">{{#str}}desc{{/str}}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        {{/cansort}}
+        <div class="card box-recordsperpage">
+            <h3 class="card-header">{{#str}}recordsperpage, mod_dataview{{/str}}</h3>
+            <div class="card-body">
+                <select id="recordsperpage" class="form-control">
+                    {{#recordsbypage}}
+                        <option value="{{.}}">{{.}}</option>
+                    {{/recordsbypage}}
+                </select>
+                <br>
+                <div>
+                    {{#pix}} i/warning {{/pix}} {{#str}}recordsperpageinfo, mod_dataview{{/str}}
+                </div>
+            </div>
         </div>
     </div>
     <div class="records"></div>

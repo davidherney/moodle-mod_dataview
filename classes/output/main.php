@@ -67,7 +67,7 @@ class main implements renderable, templatable {
 
         $fields = explode("\n", $this->dataview->fields);
 
-        $finalfields = array();
+        $finalfields = [];
         $cm = get_coursemodule_from_instance('dataview', $this->dataview->id, 0, false, MUST_EXIST);
         foreach ($fields as $field) {
             $field = trim($field);
@@ -94,13 +94,17 @@ class main implements renderable, templatable {
             }
         }
 
+        $recordsbypage = ['', 1, 10, 20, 50, 100, 200];
+
         $PAGE->requires->string_for_js('goto', 'mod_dataview');
 
         $defaultvariables = [
             'baseurl' => $CFG->wwwroot,
             'fields' => $finalfields,
             'listtemplate' => $this->dataview->listtemplate,
-            'singletemplate' => $this->dataview->singletemplate
+            'singletemplate' => $this->dataview->singletemplate,
+            'cansort' => count($finalfields) > 1,
+            'recordsbypage' => $recordsbypage,
         ];
 
         return $defaultvariables;
