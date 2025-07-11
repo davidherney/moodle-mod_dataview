@@ -303,7 +303,7 @@ class mod_dataview_external extends external_api {
                 FROM {data_content} AS d
                 INNER JOIN {data_records} AS r ON r.id = d.recordid AND r.dataid = $dataid" . $query;
 
-            $records = $DB->get_records_sql($sql, $params, $start, $limit);
+            $records = $DB->get_records_sql($sql, $params, $start, $perpage);
 
         } else {
 
