@@ -190,7 +190,7 @@ class mod_dataview_external extends external_api {
         $sort = '';
         $order = '';
         $page = $start;
-        $perpage = $limit;
+        $perpage = $limit == 0 ? 20 : $limit; // Default to 20 if limit is 0.
         $defaults = [];
         $requiredfilters = [];
         $i = 0;
