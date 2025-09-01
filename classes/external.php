@@ -122,7 +122,7 @@ class mod_dataview_external extends external_api {
                             'course' => new external_value(PARAM_INT, 'Course id'),
                             'name' => new external_value(PARAM_RAW, 'Data view name'),
                             'intro' => new external_value(PARAM_RAW, 'Data view contents'),
-                            'introformat' => new external_format_value('intro', 'Content format'),
+                            'introformat' => new external_format_value('intro'),
                             'introfiles' => new external_files('Files in the introduction text'),
                             'timemodified' => new external_value(PARAM_INT, 'Last time the dataview was modified'),
                             'section' => new external_value(PARAM_INT, 'Course section id'),
